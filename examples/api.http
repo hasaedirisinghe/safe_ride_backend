@@ -1,0 +1,41 @@
+@base = http://127.0.0.1:5001/saferide-lk-3500b/asia-south1/api/api/v1
+@adminToken = replace-with-admin-firebase-id-token
+@parentToken = replace-with-parent-firebase-id-token
+@driverToken = replace-with-driver-firebase-id-token
+@deviceCredential = device-demo.local-device-secret
+
+### Health
+GET {{base}}/health
+
+### Parent profile
+GET {{base}}/parents/me
+Authorization: Bearer {{parentToken}}
+
+### Start trip
+POST {{base}}/trips/start
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{"busId":"bus-demo","tripType":"PICKUP"}
+
+### Scan RFID card
+POST {{base}}/devices/rfid/scan
+Authorization: Bearer {{deviceCredential}}
+Content-Type: application/json
+
+{"deviceId":"device-demo","eventId":"device-demo_000001","cardUid":"04A1B2C3","scannedAt":"2026-10-17T08:15:00Z"}
+
+### Update location as driver
+POST {{base}}/buses/bus-demo/location
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{"latitude":6.9271,"longitude":79.8612,"speed":32.5,"heading":135,"recordedAt":"2026-10-17T08:20:00Z"}
+
+### Provision a device as admin
+POST {{base}}/admin/devices
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"id":"device-002","busId":"bus-demo","firmwareVersion":"1.0.0","scanMode":"EXIT"}
+

@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "saferide-lk-3500b",
+    "development": "saferide-lk-3500b"
+  },
+  "targets": {},
+  "etags": {}
+}

@@ -1,0 +1,16 @@
+{
+  "info": { "name": "SafeRide-LK API", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:5001/saferide-lk-3500b/asia-south1/api/api/v1" },
+    { "key": "driverToken", "value": "" },
+    { "key": "parentToken", "value": "" },
+    { "key": "deviceCredential", "value": "device-demo.local-device-secret" }
+  ],
+  "item": [
+    { "name": "Health", "request": { "method": "GET", "url": "{{baseUrl}}/health" } },
+    { "name": "Parent Profile", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{parentToken}}" }], "url": "{{baseUrl}}/parents/me" } },
+    { "name": "Start Trip", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{driverToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"busId\":\"bus-demo\",\"tripType\":\"PICKUP\"}" }, "url": "{{baseUrl}}/trips/start" } },
+    { "name": "RFID Scan", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{deviceCredential}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"deviceId\":\"device-demo\",\"eventId\":\"device-demo_000001\",\"cardUid\":\"04A1B2C3\",\"scannedAt\":\"2026-10-17T08:15:00Z\"}" }, "url": "{{baseUrl}}/devices/rfid/scan" } }
+  ]
+}
+

@@ -1,0 +1,13 @@
+node_modules/
+lib/
+coverage/
+.firebase/
+firebase-debug.log*
+*-debug.log*
+*.local
+.env
+.env.*
+!.env.example
+*-service-account*.json
+serviceAccount*.json
+

@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function role(name) { return signedIn() && request.auth.token.role == name; }
+    function parentOwns(studentId) {
+      return role('PARENT')
+        && get(/databases/$(database)/documents/parents/$(request.auth.uid)).data.firebaseUid == request.auth.uid
+        && request.auth.uid in get(/databases/$(database)/documents/students/$(studentId)).data.parentIds;
+    }
+    function driverDoc() {
+      return get(/databases/$(database)/documents/drivers/$(request.auth.uid));
+    }
+    function driverBus(busId) {
+      return role('DRIVER') && driverDoc().data.firebaseUid == request.auth.uid && driverDoc().data.assignedBusId == busId;
+    }
+
+    match /parents/{parentId} {
+      allow read: if role('ADMIN') || (role('PARENT') && resource.data.firebaseUid == request.auth.uid);
+      allow write: if false;
+    }
+    match /students/{studentId} {
+      allow read: if role('ADMIN') || parentOwns(studentId) || (role('DRIVER') && driverBus(resource.data.assignedBusId));
+      allow write: if false;
+    }
+    match /drivers/{driverId} {
+      allow read: if role('ADMIN') || (role('DRIVER') && resource.data.firebaseUid == request.auth.uid);
+      allow write: if false;
+    }
+    match /buses/{busId} {
+      allow read: if role('ADMIN') || driverBus(busId)
+        || (role('PARENT') && exists(/databases/$(database)/documents/parentBusAccess/$(request.auth.uid + '_' + busId)));
+      allow write: if false;
+    }
+    match /busLocations/{busId} {
+      allow read: if role('ADMIN') || driverBus(busId)
+        || (role('PARENT') && exists(/databases/$(database)/documents/parentBusAccess/$(request.auth.uid + '_' + busId)));
+      allow write: if false;
+    }
+    match /studentTripStatus/{statusId} {
+      allow read: if role('ADMIN') || parentOwns(resource.data.studentId) || driverBus(resource.data.busId);
+      allow write: if false;
+    }
+    match /trips/{tripId} {
+      allow read: if role('ADMIN') || driverBus(resource.data.busId)
+        || (role('PARENT') && exists(/databases/$(database)/documents/parentBusAccess/$(request.auth.uid + '_' + resource.data.busId)));
+      allow write: if false;
+    }
+    match /notifications/{notificationId} {
+      allow read: if role('ADMIN') || (role('PARENT') && resource.data.parentId == request.auth.uid);
+      allow write: if false;
+    }
+    match /attendanceEvents/{eventId} {
+      allow read: if role('ADMIN') || parentOwns(resource.data.studentId) || driverBus(resource.data.busId);
+      allow write: if false;
+    }
+    match /notificationTokens/{tokenId} { allow read, write: if false; }
+    match /rfidCards/{cardId} { allow read, write: if false; }
+    match /rfidUidRegistry/{uid} { allow read, write: if false; }
+    match /devices/{deviceId} { allow read, write: if false; }
+    match /deviceScanEvents/{eventId} { allow read, write: if false; }
+    match /activeTripByBus/{busId} { allow read, write: if false; }
+    match /parentBusAccess/{accessId} { allow read, write: if false; }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
+
