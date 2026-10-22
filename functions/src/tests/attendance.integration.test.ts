@@ -2,6 +2,7 @@ import { Timestamp } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../config/firebase.js";
 import { processScan } from "../services/attendance.service.js";
+import { confirmDropoff } from "../services/trip.service.js";
 import type { DevicePrincipal } from "../types/models.js";
 
 const hasEmulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
@@ -14,6 +15,7 @@ describe.skipIf(!hasEmulator)("RFID transaction integration", () => {
     if (!response.ok) throw new Error(`Could not clear emulator data: ${response.status}`);
     const now = Timestamp.now(); const batch = db.batch();
     batch.set(db.doc("students/student-a"), { id: "student-a", status: "active", assignedBusId: "bus-a", parentIds: ["parent-a"] });
+    batch.set(db.doc("drivers/driver-a"), { id: "driver-a", firebaseUid: "driver-uid-a", assignedBusId: "bus-a", status: "active" });
     batch.set(db.doc("rfidCards/card-a"), { id: "card-a", uidNormalized: "04A1B2C3", studentId: "student-a", status: "active" });
     batch.set(db.doc("rfidUidRegistry/04A1B2C3"), { cardId: "card-a", studentId: "student-a" });
     batch.set(db.doc("trips/trip-a"), { id: "trip-a", busId: "bus-a", driverId: "driver-a", tripType: "PICKUP", status: "ACTIVE", startedAt: now, createdAt: now });
@@ -57,10 +59,30 @@ describe.skipIf(!hasEmulator)("RFID transaction integration", () => {
     expect((await db.collection("attendanceEvents").get()).size).toBe(1);
   }, 15_000);
 
-  it("allows exit only after boarding when the trusted scanner mode is EXIT", async () => {
+  it("allows exit only after boarding without queueing a second notification", async () => {
     await processScan(boarding, input("board-before-exit"));
     const exitDevice = { ...boarding, scanMode: "EXIT" as const };
     await expect(processScan(exitDevice, input("exit", "04A1B2C3", 20_000))).resolves.toMatchObject({ eventType: "EXITED", status: "EXITED" });
+    const notices = await db.collection("notifications").get();
+    expect(notices.size).toBe(1);
+    expect(notices.docs[0]?.get("type")).toBe("STUDENT_BOARDED");
+  });
+
+  it("queues a parent notification when the driver confirms drop-off", async () => {
+    await processScan(boarding, input("board-before-dropoff"));
+    const exitDevice = { ...boarding, scanMode: "EXIT" as const };
+    await processScan(exitDevice, input("exit-before-dropoff", "04A1B2C3", 20_000));
+
+    await expect(confirmDropoff("driver-uid-a", "trip-a", "student-a")).resolves.toMatchObject({ status: "DROPPED_OFF" });
+
+    const notice = await db.doc("notifications/dropoff_trip-a_student-a_parent-a").get();
+    expect(notice.data()).toMatchObject({
+      parentId: "parent-a",
+      studentId: "student-a",
+      tripId: "trip-a",
+      type: "STUDENT_DROPPED_OFF",
+      deliveryStatus: "PENDING"
+    });
   });
 });
 

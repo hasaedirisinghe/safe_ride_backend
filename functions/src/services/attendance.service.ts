@@ -52,13 +52,14 @@ export async function processScan(device: DevicePrincipal, input: ScanInput) {
       tripId, eventType: transition.eventType, scannedAt, receivedAt, source: "RFID", createdAt: receivedAt };
     tx.create(eventRef, event);
     tx.set(statusRef, { id: statusRef.id, studentId, tripId, busId: device.busId, status: transition.next, lastEventId: eventRef.id, lastUpdatedAt: scannedAt }, { merge: true });
-    const parentIds = student.get("parentIds") as string[];
-    for (const parentId of parentIds) {
-      const notificationRef = db.collection("notifications").doc(`${eventRef.id}_${parentId}`);
-      const boarded = transition.eventType === "BOARDED";
-      tx.create(notificationRef, { id: notificationRef.id, parentId, studentId, tripId, type: boarded ? "STUDENT_BOARDED" : "STUDENT_EXITED",
-        title: boarded ? "Student Boarded" : "Student Exited", body: boarded ? "Your child has boarded the school bus." : "Your child has exited the school bus.",
-        read: false, deliveryStatus: "PENDING", deliveryAttempts: 0, createdAt: receivedAt });
+    if (transition.eventType === "BOARDED") {
+      const parentIds = student.get("parentIds") as string[];
+      for (const parentId of parentIds) {
+        const notificationRef = db.collection("notifications").doc(`${eventRef.id}_${parentId}`);
+        tx.create(notificationRef, { id: notificationRef.id, parentId, studentId, tripId, type: "STUDENT_BOARDED",
+          title: "Student Boarded", body: "Your child has boarded the school bus.",
+          read: false, deliveryStatus: "PENDING", deliveryAttempts: 0, createdAt: receivedAt });
+      }
     }
     tx.create(idempotencyRef, { deviceId: device.deviceId, eventId: input.eventId, uidFingerprint: uidNormalized.slice(-4), scannedAt, receivedAt,
       outcome: "ACCEPTED", attendanceEventId: eventRef.id, tripId });

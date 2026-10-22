@@ -8,6 +8,10 @@ export async function createParent(req: Request, res: Response) { ok(res, serial
 export async function createStudent(req: Request, res: Response) { ok(res, serialize(await adminService.createEntity("students", req.body)), "Student created", 201); }
 export async function createDriver(req: Request, res: Response) { ok(res, serialize(await adminService.createDriver(req.body)), "Driver created", 201); }
 export async function createBus(req: Request, res: Response) { ok(res, serialize(await adminService.createEntity("buses", req.body)), "Bus created", 201); }
+export async function listBuses(req: Request, res: Response) {
+  const snap = await db.collection("buses").orderBy("createdAt", "desc").limit(pageLimit(req.query.limit)).get();
+  ok(res, serialize(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))));
+}
 export async function createCard(req: Request, res: Response) { ok(res, serialize(await adminService.registerCard(req.body)), "RFID card registered", 201); }
 export async function updateCard(req: Request, res: Response) { ok(res, await adminService.updateCard(String(req.params.id), req.body.status), "RFID card updated"); }
 export async function createDevice(req: Request, res: Response) { ok(res, serialize(await adminService.provisionDevice(req.body)), "Device provisioned; save the credential now because it will not be shown again", 201); }

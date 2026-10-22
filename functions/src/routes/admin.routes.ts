@@ -10,6 +10,7 @@ adminRouter.use(asyncHandler(authenticateFirebaseUser), requireRole("ADMIN"));
 adminRouter.post("/parents", validateRequest({ body: s.createParentBody }), asyncHandler(c.createParent));
 adminRouter.post("/students", validateRequest({ body: s.createStudentBody }), asyncHandler(c.createStudent));
 adminRouter.post("/drivers", validateRequest({ body: s.createDriverBody }), asyncHandler(c.createDriver));
+adminRouter.get("/buses", validateRequest({ query: s.paginationQuery }), asyncHandler(c.listBuses));
 adminRouter.post("/buses", validateRequest({ body: s.createBusBody }), asyncHandler(c.createBus));
 adminRouter.post("/rfid-cards", validateRequest({ body: s.createCardBody }), asyncHandler(c.createCard));
 adminRouter.patch("/rfid-cards/:id", validateRequest({ params: s.idParam, body: s.updateCardBody }), asyncHandler(c.updateCard));

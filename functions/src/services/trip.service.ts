@@ -37,11 +37,35 @@ export async function confirmDropoff(uid: string, tripId: string, studentId: str
   const driver = await profileByUid("drivers", uid); const tripRef = db.collection("trips").doc(tripId);
   const statusRef = db.collection("studentTripStatus").doc(`${tripId}_${studentId}`);
   return db.runTransaction(async (tx) => {
-    const [trip, status] = await Promise.all([tx.get(tripRef), tx.get(statusRef)]);
+    const [trip, status, student] = await Promise.all([
+      tx.get(tripRef),
+      tx.get(statusRef),
+      tx.get(db.collection("students").doc(studentId))
+    ]);
     if (!trip.exists || trip.get("status") !== "ACTIVE") throw notFound("Active trip not found");
     if (trip.get("driverId") !== driver.id) throw forbidden();
+    if (!student.exists) throw notFound("Student not found");
     if (!status.exists || status.get("status") !== "EXITED") throw conflict("INVALID_ATTENDANCE_TRANSITION", "Student must be marked exited before drop-off confirmation");
-    const lastUpdatedAt = Timestamp.now(); tx.update(statusRef, { status: "DROPPED_OFF", lastUpdatedAt, dropoffConfirmedBy: driver.id });
+    const lastUpdatedAt = Timestamp.now();
+    tx.update(statusRef, { status: "DROPPED_OFF", lastUpdatedAt, dropoffConfirmedBy: driver.id });
+
+    const parentIds = student.get("parentIds") as string[] ?? [];
+    for (const parentId of parentIds) {
+      const notificationRef = db.collection("notifications").doc(`dropoff_${tripId}_${studentId}_${parentId}`);
+      tx.create(notificationRef, {
+        id: notificationRef.id,
+        parentId,
+        studentId,
+        tripId,
+        type: "STUDENT_DROPPED_OFF",
+        title: "Student Dropped Off",
+        body: "Your child's drop-off has been confirmed by the driver.",
+        read: false,
+        deliveryStatus: "PENDING",
+        deliveryAttempts: 0,
+        createdAt: lastUpdatedAt
+      });
+    }
     return { tripId, studentId, status: "DROPPED_OFF", lastUpdatedAt };
   });
 }

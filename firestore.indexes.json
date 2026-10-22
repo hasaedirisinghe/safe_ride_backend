@@ -17,6 +17,10 @@
       { "fieldPath": "assignedBusId", "order": "ASCENDING" },
       { "fieldPath": "status", "order": "ASCENDING" }
     ]},
+    { "collectionGroup": "studentTripStatus", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "studentId", "order": "ASCENDING" },
+      { "fieldPath": "lastUpdatedAt", "order": "DESCENDING" }
+    ]},
     { "collectionGroup": "notificationTokens", "queryScope": "COLLECTION", "fields": [
       { "fieldPath": "userId", "order": "ASCENDING" },
       { "fieldPath": "updatedAt", "order": "DESCENDING" }
